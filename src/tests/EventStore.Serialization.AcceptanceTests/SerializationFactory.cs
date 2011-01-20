@@ -12,8 +12,6 @@ namespace EventStore.Serialization.AcceptanceTests
 					return new BinarySerializer();
 				case "Compressed":
 					return new CompressedSerializer(new BinarySerializer());
-				case "Xml":
-					return new XmlSerializer(typeof(SimpleMessage));
 				case "Json":
 					return new JsonSerializer();
 				case "Bson":

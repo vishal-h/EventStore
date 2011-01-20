@@ -49,17 +49,6 @@ echo Rereferencing Merged Assembly
 msbuild /nologo /verbosity:quiet src/EventStore.sln /p:Configuration=%TARGET_CONFIG% /t:Clean
 msbuild /nologo /verbosity:quiet src/EventStore.sln /p:Configuration=%TARGET_CONFIG% /property:TargetFrameworkVersion=%FRAMEWORK_VERSION%
 
-echo Merging RavenDB Persistence
-set FILES_TO_MERGE=
-set FILES_TO_MERGE=%FILES_TO_MERGE% "src\proj\EventStore.Persistence.RavenPersistence\bin\%TARGET_CONFIG%\EventStore.Persistence.RavenPersistence.dll"
-set FILES_TO_MERGE=%FILES_TO_MERGE% "src\proj\EventStore.Persistence.RavenPersistence\bin\%TARGET_CONFIG%\MissingBitsFromClientProfile.dll"
-set FILES_TO_MERGE=%FILES_TO_MERGE% "src\proj\EventStore.Persistence.RavenPersistence\bin\%TARGET_CONFIG%\Newtonsoft.Json.dll"
-set FILES_TO_MERGE=%FILES_TO_MERGE% "src\proj\EventStore.Persistence.RavenPersistence\bin\%TARGET_CONFIG%\Raven*.dll"
-echo EventStore.*>exclude.txt
-(echo.|set /p =RavenDB.Client.*)>>exclude.txt
-bin\ilmerge-bin\ILMerge.exe /keyfile:src/EventStore.snk /internalize:"exclude.txt" /xmldocs /wildcards /targetplatform:%ILMERGE_VERSION% /out:output/bin/EventStore.Persistence.RavenPersistence.dll %FILES_TO_MERGE%
-del exclude.txt
-
 echo Merging MongoDB Persistence
 set FILES_TO_MERGE=
 set FILES_TO_MERGE=%FILES_TO_MERGE% "src\proj\EventStore.Persistence.MongoPersistence\bin\%TARGET_CONFIG%\EventStore.Persistence.MongoPersistence.dll"
