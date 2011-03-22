@@ -44,6 +44,7 @@
     <Compile Include="Engines\AcceptanceTestMongoPersistenceFactory.cs" />
     <Compile Include="Engines\AcceptanceTestRavenPersistenceFactory.cs" />
     <Compile Include="Engines\AcceptanceTestSqlPersistenceFactory.cs" />
+    <Compile Include="Engines\AcceptanceTestAmazonPersistenceFactory.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="PersistenceFactoryScanner.cs" />
     <Compile Include="PersistenceTests.cs" />
@@ -64,6 +65,10 @@
     <ProjectReference Include="..\..\proj\EventStore.Core\EventStore.Core.csproj">
       <Project>{D6413244-42F5-4233-B347-D0A804B09CC9}</Project>
       <Name>EventStore.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\proj\EventStore.Persistence.AmazonPersistence\EventStore.Persistence.AmazonPersistence.csproj">
+      <Project>{E41277FE-412B-4171-A815-140BC03DDD2F}</Project>
+      <Name>EventStore.Persistence.AmazonPersistence</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\proj\EventStore.Persistence.MongoPersistence\EventStore.Persistence.MongoPersistence.csproj">
       <Project>{32ADD8CE-0F3F-41D8-BFA1-6E5D685E64DD}</Project>
