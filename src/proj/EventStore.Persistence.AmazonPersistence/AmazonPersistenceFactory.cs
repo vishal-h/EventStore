@@ -22,16 +22,17 @@ namespace EventStore.Persistence.AmazonPersistence
 
 		public virtual IPersistStreams Build()
 		{
-			var s3Client = AWSClientFactory.CreateAmazonS3Client(accessKey, secretKey, new AmazonS3Config
-			{
-				CommunicationProtocol = Protocol.HTTPS,
-				MaxErrorRetry = 3,
-				UseSecureStringForAwsSecretKey = true // TODO: doesn't work in medium trust
-			});
+			var storage = new SimpleStorageClient(this.BuildAmazonS3Client(), this.bucketName, this.serializer);
+			return new AmazonPersistenceEngine(storage);
+		}
+		private AmazonS3 BuildAmazonS3Client()
+		{
+			var config = new AmazonS3Config()
+				.WithCommunicationProtocol(Protocol.HTTPS)
+				.WithMaxErrorRetry(3)
+				.WithUseSecureStringForAwsSecretKey(true); // TODO: make configurable; doesn't work in medium trust
 
-			var storage = new SimpleStorageClient(s3Client, this.bucketName);
-
-			return new AmazonPersistenceEngine(storage, this.serializer);
+			return AWSClientFactory.CreateAmazonS3Client(this.accessKey, this.secretKey, config);
 		}
 	}
 }

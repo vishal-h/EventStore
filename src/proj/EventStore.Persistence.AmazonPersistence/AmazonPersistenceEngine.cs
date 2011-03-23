@@ -9,13 +9,11 @@ namespace EventStore.Persistence.AmazonPersistence
 	public class AmazonPersistenceEngine : IPersistStreams
 	{
 		private readonly SimpleStorageClient storage;
-		private readonly ISerialize serializer;
 		private int initialized;
 
-		public AmazonPersistenceEngine(SimpleStorageClient storage, ISerialize serializer)
+		public AmazonPersistenceEngine(SimpleStorageClient storage)
 		{
 			this.storage = storage;
-			this.serializer = serializer;
 		}
 
 		public void Dispose()
@@ -25,6 +23,10 @@ namespace EventStore.Persistence.AmazonPersistence
 		}
 		protected virtual void Dispose(bool disposing)
 		{
+			if (!disposing)
+				return;
+
+			this.storage.Dispose();
 		}
 
 		public virtual void Initialize()
@@ -32,7 +34,7 @@ namespace EventStore.Persistence.AmazonPersistence
 			if (Interlocked.Increment(ref this.initialized) > 1)
 				return;
 
-			// assert that the bucket exists?
+			this.storage.Initialize();
 		}
 
 		public virtual IEnumerable<Commit> GetFrom(Guid streamId, int minRevision, int maxRevision)
@@ -47,20 +49,23 @@ namespace EventStore.Persistence.AmazonPersistence
 		public virtual void Commit(Commit attempt)
 		{
 			var identifier = GetIdentifier(attempt);
+			var version = string.Empty;
 
 			try
 			{
-				this.PutCommit(attempt, identifier);
-				this.UpdateIndex(attempt, identifier);
+				version = this.storage.Put(identifier, attempt);
+				this.UpdateIndex(attempt, identifier, version);
 			}
 			catch (ConcurrencyException)
 			{
-				var commit = this.GetCommit(identifier);
-				this.UpdateIndex(commit, identifier);
+				this.storage.Remove(identifier, version);
+
+				throw;
 			}
 		}
 		private static string GetIdentifier(Commit attempt)
 		{
+			// TODO: format path properly
 			// s3://{bucket}/4/4/4/4/16/4/.../{up to 4 digits}.(commit|snapshot)
 			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1.commit
 			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1.snapshot
@@ -68,28 +73,7 @@ namespace EventStore.Persistence.AmazonPersistence
 			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1000.snapshot
 			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1000/0.commit
 			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1000/0.snapshot
-
-			// TODO: format path properly
 			return "{0}/{1}.commit".FormatWith(attempt.StreamId, attempt.CommitSequence);
-		}
-		private void PutCommit(Commit attempt, string identifier)
-		{
-			using (var stream = new MemoryStream())
-			{
-				this.serializer.Serialize(stream, attempt);
-				stream.Position = 0;
-				this.storage.Put(identifier, stream);
-			}
-		}
-		private void UpdateIndex(Commit committed, string identifier)
-		{
-			// this should never throw a "duplicate" exception
-			// this should be async
-		}
-		private Commit GetCommit(string identifier)
-		{
-			using (var stream = this.storage.Get(identifier))
-				return this.serializer.Deserialize<Commit>(stream);
 		}
 
 		public virtual IEnumerable<Commit> GetUndispatchedCommits()
@@ -111,6 +95,10 @@ namespace EventStore.Persistence.AmazonPersistence
 		public virtual bool AddSnapshot(Snapshot snapshot)
 		{
 			return false;
+		}
+
+		private void UpdateIndex(Commit committed, string identifier, string version)
+		{
 		}
 	}
 }

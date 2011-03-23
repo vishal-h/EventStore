@@ -4,18 +4,21 @@ namespace EventStore.Persistence.AmazonPersistence
 	using System.IO;
 	using Amazon.S3;
 	using Amazon.S3.Model;
+	using Serialization;
 
 	public class SimpleStorageClient : IDisposable
 	{
-		private const int MaxAttempts = 3;
+		private const string EnableBucketVersioning = "Enabled";
 		private static readonly int Timeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
 		private readonly AmazonS3 client;
 		private readonly string bucketName;
+		private readonly ISerialize serializer;
 
-		public SimpleStorageClient(AmazonS3 client, string bucketName)
+		public SimpleStorageClient(AmazonS3 client, string bucketName, ISerialize serializer)
 		{
 			this.client = client;
 			this.bucketName = bucketName;
+			this.serializer = serializer;
 		}
 
 		public void Dispose()
@@ -29,42 +32,71 @@ namespace EventStore.Persistence.AmazonPersistence
 				this.client.Dispose();
 		}
 
-		public virtual bool Put(string identifier, Stream input)
+		public virtual void Initialize()
 		{
-			// TODO: object already exists? get the object and determine if it's duplicate or not...
-			var request = new PutObjectRequest
-			{
-				BucketName = this.bucketName,
-				Key = identifier,
-				GenerateMD5Digest = true,
-				InputStream = input,
-				Timeout = Timeout,
-			};
+			var version = new S3BucketVersioningConfig()
+				.WithStatus(EnableBucketVersioning)
+				.WithEnableMfaDelete(false);
 
-			return Try(() =>
+			var request = new SetBucketVersioningRequest()
+				.WithBucketName(this.bucketName)
+				.WithVersioningConfig(version);
+
+			this.Try(() => this.client.SetBucketVersioning(request));
+		}
+
+		public virtual string Put<T>(string identifier, T item)
+		{
+			using (var stream = new MemoryStream())
 			{
-				using (this.client.PutObject(request))
-					return true;
+				this.serializer.Serialize(stream, item);
+				stream.Position = 0;
+				return this.PutStream(identifier, stream);
+			}
+		}
+		private string PutStream(string identifier, Stream input)
+		{
+			var request = new PutObjectRequest()
+				.WithBucketName(this.bucketName)
+				.WithTimeout(Timeout)
+				.WithKey(identifier)
+				.WithGenerateChecksum(true)
+				.WithInputStream(input) as PutObjectRequest;
+
+			return this.Try(() =>
+			{
+				using (var response = this.client.PutObject(request))
+					return response.VersionId;
 			});
 		}
-		public virtual Stream Get(string identifier)
+		
+		public virtual T Get<T>(string identifier, string version)
 		{
-			// TODO: not found, return null
-			var request = new GetObjectRequest
-			{
-				BucketName = this.bucketName,
-				Key = identifier,
-				Timeout = Timeout
-			};
+			using (var stream = this.GetStream(identifier, version))
+				return this.serializer.Deserialize<T>(stream);
+		}
+		private Stream GetStream(string identifier, string version)
+		{
+			var request = new GetObjectRequest()
+				.WithBucketName(this.bucketName)
+				.WithKey(identifier)
+				.WithVersionId(version)
+				.WithTimeout(Timeout);
 
-			return Try(() => this.client.GetObject(request).ResponseStream);
+			return this.Try(() => this.client.GetObject(request).ResponseStream);
+		}
+
+		public virtual void Remove(string identifier, string version)
+		{
+			var request = new DeleteObjectRequest()
+				.WithBucketName(this.bucketName)
+				.WithKey(identifier)
+				.WithVersionId(version);
+
+			this.Try(() => this.client.BeginDeleteObject(request, state => { }, null));
 		}
 
 		protected virtual T Try<T>(Func<T> callback)
-		{
-			return Try(callback, 0);
-		}
-		private static T Try<T>(Func<T> callback, int attempt)
 		{
 			try
 			{
@@ -72,9 +104,6 @@ namespace EventStore.Persistence.AmazonPersistence
 			}
 			catch (TimeoutException e)
 			{
-				if (attempt >= MaxAttempts)
-					return default(T);
-
 				throw new StorageUnavailableException(e.Message, e);
 			}
 			catch (AmazonS3Exception e)
