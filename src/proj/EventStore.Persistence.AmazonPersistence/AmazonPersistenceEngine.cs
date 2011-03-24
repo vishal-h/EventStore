@@ -2,17 +2,17 @@ namespace EventStore.Persistence.AmazonPersistence
 {
 	using System;
 	using System.Collections.Generic;
-	using System.IO;
 	using System.Threading;
-	using Serialization;
 
 	public class AmazonPersistenceEngine : IPersistStreams
 	{
+		private readonly SimpleDbClient database;
 		private readonly SimpleStorageClient storage;
 		private int initialized;
 
-		public AmazonPersistenceEngine(SimpleStorageClient storage)
+		public AmazonPersistenceEngine(SimpleDbClient database, SimpleStorageClient storage)
 		{
+			this.database = database;
 			this.storage = storage;
 		}
 
@@ -34,6 +34,7 @@ namespace EventStore.Persistence.AmazonPersistence
 			if (Interlocked.Increment(ref this.initialized) > 1)
 				return;
 
+			this.database.Initialize();
 			this.storage.Initialize();
 		}
 
@@ -54,7 +55,11 @@ namespace EventStore.Persistence.AmazonPersistence
 			try
 			{
 				version = this.storage.Put(identifier, attempt);
+
+				// TODO: this.AddToDispatch(attempt, identifier, version)
 				this.UpdateIndex(attempt, identifier, version);
+
+				// TODO: async update of "StreamHead"
 			}
 			catch (ConcurrencyException)
 			{

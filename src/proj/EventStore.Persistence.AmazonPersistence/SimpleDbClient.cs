@@ -7,6 +7,7 @@ namespace EventStore.Persistence.AmazonPersistence
 
 	public class SimpleDbClient
 	{
+		private const string ItemName = "{0}/{1}";
 		private const string RevisionQuery = "select * from {0} where StreamId = {1} and MinRevision >= {2} and MaxRevision <= {3} order by MinRevision";
 		private readonly AmazonSimpleDB client;
 
@@ -24,6 +25,24 @@ namespace EventStore.Persistence.AmazonPersistence
 		{
 			if (disposing)
 				this.client.Dispose();
+		}
+
+		public virtual void Initialize()
+		{
+		}
+
+		public virtual bool PutCommit(Commit attempt, string identifier, string version)
+		{
+			var optimisticConcurrency = new UpdateCondition()
+				.WithExists(false);
+
+			var request = new PutAttributesRequest()
+				.WithDomainName("Commits") // TODO: sharding?
+				.WithItemName(ItemName.FormatWith(attempt.StreamId, attempt.CommitSequence))
+				.WithExpected(optimisticConcurrency)
+				.WithAttribute(null);
+
+			return true;
 		}
 
 		public virtual IEnumerable<Commit> Select(string domain, string streamId, int minRevision, int maxRevision)
