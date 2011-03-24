@@ -1,14 +1,15 @@
 namespace EventStore
 {
-	using Persistence.MongoPersistence;
+	using Persistence.AmazonPersistence;
 	using Serialization;
 
 	public static class MongoPersistenceWireupExtensions
 	{
-		public static Wireup UsingMongoPersistence(
+		public static Wireup UsingAmazonPersistence(
 			this Wireup wireup, string connectionName, ISerialize serializer)
 		{
-			wireup.With(new MongoPersistenceFactory(connectionName, serializer).Build());
+			// TODO: connection info
+			wireup.With(new AmazonPersistenceFactory(null, null, null, serializer).Build());
 			return wireup;
 		}
 	}

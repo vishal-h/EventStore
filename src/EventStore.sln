@@ -46,10 +46,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Persistence.Mong
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Persistence.RavenPersistence.Wireup", "proj\EventStore.Persistence.RavenPersistence.Wireup\EventStore.Persistence.RavenPersistence.Wireup.csproj", "{A99B2B16-B6BE-4B83-ACE0-56A734DB9AEF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Persistence.AmazonPersistence", "proj\EventStore.Persistence.AmazonPersistence\EventStore.Persistence.AmazonPersistence.csproj", "{E41277FE-412B-4171-A815-140BC03DDD2F}"EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Persistence.AmazonPersistence", "proj\EventStore.Persistence.AmazonPersistence\EventStore.Persistence.AmazonPersistence.csproj", "{E41277FE-412B-4171-A815-140BC03DDD2F}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Serialization.ServiceStack", "proj\EventStore.Serialization.ServiceStack\EventStore.Serialization.ServiceStack.csproj", "{2BA8B905-65D5-4BBA-A76B-58EC49F26018}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Serialization.ServiceStack.Wireup", "proj\EventStore.Serialization.ServiceStack.Wireup\EventStore.Serialization.ServiceStack.Wireup.csproj", "{33B78974-7867-4C10-90AD-F31352BF0EEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore.Persistence.AmazonPersistence.Wireup", "proj\EventStore.Persistence.AmazonPersistence.Wireup\EventStore.Persistence.AmazonPersistence.Wireup.csproj", "{B922AD58-3580-44A3-92F4-8B1C7CBD6F15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -129,6 +132,10 @@ Global
 		{33B78974-7867-4C10-90AD-F31352BF0EEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33B78974-7867-4C10-90AD-F31352BF0EEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{33B78974-7867-4C10-90AD-F31352BF0EEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B922AD58-3580-44A3-92F4-8B1C7CBD6F15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B922AD58-3580-44A3-92F4-8B1C7CBD6F15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B922AD58-3580-44A3-92F4-8B1C7CBD6F15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B922AD58-3580-44A3-92F4-8B1C7CBD6F15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -152,5 +159,6 @@ Global
 		{E95780CB-3114-4925-A38A-1FA4CC4EC213} = {52F7988F-452D-46C2-A144-D85E0CF371C6}
 		{A99B2B16-B6BE-4B83-ACE0-56A734DB9AEF} = {52F7988F-452D-46C2-A144-D85E0CF371C6}
 		{33B78974-7867-4C10-90AD-F31352BF0EEC} = {52F7988F-452D-46C2-A144-D85E0CF371C6}
+		{B922AD58-3580-44A3-92F4-8B1C7CBD6F15} = {52F7988F-452D-46C2-A144-D85E0CF371C6}
 	EndGlobalSection
 EndGlobal
