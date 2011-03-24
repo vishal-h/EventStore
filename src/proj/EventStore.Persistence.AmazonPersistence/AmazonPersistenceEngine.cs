@@ -70,6 +70,8 @@ namespace EventStore.Persistence.AmazonPersistence
 		}
 		private static string GetIdentifier(Commit attempt)
 		{
+			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1 (e955fa4d-87c6-46a6-ba61-0bf53043d1bb).commit
+
 			// TODO: format path properly
 			// s3://{bucket}/4/4/4/4/16/4/.../{up to 4 digits}.(commit|snapshot)
 			// s3://mybucket/1ed1/d4bd/a01c/4bc6/ab4cee9720eafce5/1.commit

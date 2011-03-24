@@ -8,7 +8,6 @@ namespace EventStore.Persistence.AmazonPersistence
 
 	public class SimpleStorageClient : IDisposable
 	{
-		private const string EnableBucketVersioning = "Enabled";
 		private static readonly int Timeout = (int)TimeSpan.FromSeconds(30).TotalMilliseconds;
 		private readonly AmazonS3 client;
 		private readonly string bucketName;
@@ -34,15 +33,7 @@ namespace EventStore.Persistence.AmazonPersistence
 
 		public virtual void Initialize()
 		{
-			var version = new S3BucketVersioningConfig()
-				.WithStatus(EnableBucketVersioning)
-				.WithEnableMfaDelete(false);
-
-			var request = new SetBucketVersioningRequest()
-				.WithBucketName(this.bucketName)
-				.WithVersioningConfig(version);
-
-			this.Try(() => this.client.SetBucketVersioning(request));
+			// TODO: create bucket if it doesn't already exist
 		}
 
 		public virtual string Put<T>(string identifier, T item)
