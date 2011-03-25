@@ -45,7 +45,9 @@
     <Compile Include="..\..\src\proj\VersionAssemblyInfo.cs">
       <Link>Properties\VersionAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="PreventUnauthorizedWritesFilter.cs" />
     <Compile Include="MainProgram.cs" />
+    <Compile Include="PreventUnauthorizedReadsFilter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -54,7 +56,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-	<Reference Include="EventStore (ILMerged)" Condition="'$(ILMerged)' == 'true'">
+    <Reference Include="EventStore (ILMerged)" Condition="'$(ILMerged)' == 'true'">
       <HintPath>..\..\output\bin\EventStore.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\..\src\proj\EventStore\EventStore.csproj" Condition="'$(ILMerged)' != 'true'">
@@ -93,6 +95,7 @@
     <EmbeddedResource Include="Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
