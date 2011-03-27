@@ -80,7 +80,7 @@
 				.Select(x => x.ToCommit(this.serializer)));
 		}
 
-		public virtual Commit Commit(Commit attempt)
+		public virtual void Commit(Commit attempt)
 		{
 			this.TryMongo(() =>
 			{
@@ -104,8 +104,6 @@
 					throw new ConcurrencyException();
 				}
 			});
-
-			return attempt;
 		}
 
 		public virtual IEnumerable<Commit> GetUndispatchedCommits()

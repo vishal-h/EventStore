@@ -47,7 +47,7 @@ namespace EventStore.Persistence.AmazonPersistence
 			return null;
 		}
 
-		public virtual Commit Commit(Commit attempt)
+		public virtual void Commit(Commit attempt)
 		{
 			var identifier = GetIdentifier(attempt);
 			var version = string.Empty;
@@ -58,10 +58,7 @@ namespace EventStore.Persistence.AmazonPersistence
 
 				// TODO: this.AddToDispatch(attempt, identifier, version)
 				this.UpdateIndex(attempt, identifier, version);
-
-				// TODO: async update of "StreamHead"
-
-				return attempt;
+				//// TODO: async update of "StreamHead"
 			}
 			catch (ConcurrencyException)
 			{
