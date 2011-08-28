@@ -193,7 +193,7 @@ namespace EventStore.Core.UnitTests
 			constructed.CommitSequence.ShouldEqual(DefaultCommitSequence);
 
 		It should_build_the_commit_with_the_correct_commit_stamp = () =>
-			DateTime.UtcNow.Subtract(constructed.CommitStamp).ShouldBeLessThan(TimeSpan.FromMilliseconds(50));
+			SystemTime.UtcNow().Subtract(constructed.CommitStamp).ShouldBeLessThan(TimeSpan.FromMilliseconds(150));
 
 		It should_build_the_commit_with_the_headers_provided = () =>
 			constructed.Headers[headers.First().Key].ShouldEqual(headers.First().Value);
@@ -221,6 +221,34 @@ namespace EventStore.Core.UnitTests
 
 		It should_clear_the_uncommitted_headers_on_the_stream = () =>
 			stream.UncommittedHeaders.ShouldBeEmpty();
+	}
+
+	/// <summary>
+	/// This behavior is primarily to support a NoSQL storage solution where CommitId is not being used as the "primary key"
+	/// in a NoSQL environment, we'll most likely use StreamId + CommitSequence, which also enables optimistic concurrency.
+	/// </summary>
+	[Subject("OptimisticEventStream")]
+	public class when_committing_with_an_identifier_that_was_previously_read : on_the_event_stream
+	{
+		static readonly Commit[] Committed = new[] { BuildCommitStub(1, 1, 1) };
+		static readonly Guid DupliateCommitId = Committed[0].CommitId;
+		static Exception thrown;
+
+		Establish context = () =>
+		{
+			persistence
+				.Setup(x => x.GetFrom(streamId, 0, int.MaxValue))
+				.Returns(Committed);
+
+			stream = new OptimisticEventStream(
+				streamId, persistence.Object, 0, int.MaxValue);
+		};
+
+		Because of = () =>
+			thrown = Catch.Exception(() => stream.CommitChanges(DupliateCommitId));
+
+		It should_throw_a_DuplicateCommitException = () =>
+			thrown.ShouldBeOfType<DuplicateCommitException>();
 	}
 
 	[Subject("OptimisticEventStream")]
@@ -325,7 +353,7 @@ namespace EventStore.Core.UnitTests
 			for (var i = 0; i < eventCount; i++)
 				events.Add(new EventMessage());
 
-			return new Commit(streamId, revision, Guid.NewGuid(), sequence, DateTime.UtcNow, null, events);
+			return new Commit(streamId, revision, Guid.NewGuid(), sequence, SystemTime.UtcNow(), null, events);
 		}
 	}
 }

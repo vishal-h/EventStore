@@ -6,7 +6,10 @@ namespace EventStore
 	/// <summary>
 	/// Indicates the ability to store and retreive a stream of events.
 	/// </summary>
-	public interface IStoreEvents : IDisposable, IAccessSnapshots
+	/// <remarks>
+	/// Instances of this class must be designed to be multi-thread safe such that they can be shared between threads.
+	/// </remarks>
+	public interface IStoreEvents : IDisposable
 	{
 		/// <summary>
 		/// Creates a new stream.
@@ -37,5 +40,10 @@ namespace EventStore
 		/// <exception cref="StorageException" />
 		/// <exception cref="StorageUnavailableException" />
 		IEventStream OpenStream(Snapshot snapshot, int maxRevision);
+
+		/// <summary>
+		/// Gets a reference to the underlying persistence engine which allows direct access to persistence operations.
+		/// </summary>
+		IPersistStreams Advanced { get; }
 	}
 }

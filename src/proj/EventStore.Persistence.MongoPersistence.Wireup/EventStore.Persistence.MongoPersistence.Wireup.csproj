@@ -42,6 +42,7 @@
     <Compile Include="..\VersionAssemblyInfo.cs">
       <Link>Properties\VersionAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="MongoPersistenceWireup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MongoPersistenceWireupExtensions.cs" />
   </ItemGroup>
@@ -55,7 +56,7 @@
       <Project>{32ADD8CE-0F3F-41D8-BFA1-6E5D685E64DD}</Project>
       <Name>EventStore.Persistence.MongoPersistence</Name>
     </ProjectReference>
-	<Reference Include="EventStore (ILMerged)" Condition="'$(ILMerged)' == 'true'">
+    <Reference Include="EventStore (ILMerged)" Condition="'$(ILMerged)' == 'true'">
       <HintPath>..\..\..\output\bin\EventStore.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\EventStore\EventStore.csproj" Condition="'$(ILMerged)' != 'true'">

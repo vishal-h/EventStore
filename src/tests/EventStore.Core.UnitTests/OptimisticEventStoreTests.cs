@@ -95,14 +95,14 @@ namespace EventStore.Core.UnitTests
 	{
 		const int MinRevision = 17;
 		const int MaxRevision = 42;
-		static readonly Commit[] Committed = new[] { BuildCommitStub(MinRevision, 1) };
+		static readonly Commit Committed = BuildCommitStub(MinRevision, 1);
 		static IEventStream stream;
 
 		Establish context = () =>
 		{
-			persistence.Setup(x => x.GetFrom(streamId, MinRevision, MaxRevision)).Returns(Committed);
+			persistence.Setup(x => x.GetFrom(streamId, MinRevision, MaxRevision)).Returns(new[] { Committed });
 			pipelineHooks.Add(new Mock<IPipelineHook>());
-			pipelineHooks[0].Setup(x => x.Select(Committed.First()));
+			pipelineHooks[0].Setup(x => x.Select(Committed)).Returns(Committed);
 		};
 
 		Because of = () =>
@@ -112,7 +112,7 @@ namespace EventStore.Core.UnitTests
 			persistence.Verify(x => x.GetFrom(streamId, MinRevision, MaxRevision), Times.Once());
 
 		It should_provide_the_commits_to_the_selection_hooks = () =>
-			pipelineHooks.ForEach(x => x.Verify(hook => hook.Select(Committed.First()), Times.Once()));
+			pipelineHooks.ForEach(x => x.Verify(hook => hook.Select(Committed), Times.Once()));
 
 		It should_return_an_event_stream_containing_the_correct_stream_identifer = () =>
 			stream.StreamId.ShouldEqual(streamId);
@@ -351,6 +351,13 @@ namespace EventStore.Core.UnitTests
 	}
 
 	[Subject("OptimisticEventStore")]
+	public class when_accessing_the_underlying_persistence : using_persistence
+	{
+		It should_return_a_reference_to_the_underlying_persistence_infrastructure = () =>
+			store.Advanced.ShouldBeTheSameAs(persistence.Object);
+	}
+
+	[Subject("OptimisticEventStore")]
 	public class when_disposing_the_event_store : using_persistence
 	{
 		Because of = () =>
@@ -379,17 +386,17 @@ namespace EventStore.Core.UnitTests
 
 		protected static Commit BuildCommitStub(Guid commitId)
 		{
-			return new Commit(streamId, 1, commitId, 1, DateTime.UtcNow, null, null);
+			return new Commit(streamId, 1, commitId, 1, SystemTime.UtcNow(), null, null);
 		}
 		protected static Commit BuildCommitStub(int streamRevision, int commitSequence)
 		{
-			var events = new[] { new EventMessage() } .ToList();
-			return new Commit(streamId, streamRevision, Guid.NewGuid(), commitSequence, DateTime.UtcNow, null, events);
+			var events = new[] { new EventMessage() }.ToList();
+			return new Commit(streamId, streamRevision, Guid.NewGuid(), commitSequence, SystemTime.UtcNow(), null, events);
 		}
 		protected static Commit BuildCommitStub(Guid commitId, int streamRevision, int commitSequence)
 		{
-			var events = new[] { new EventMessage() } .ToList();
-			return new Commit(streamId, streamRevision, commitId, commitSequence, DateTime.UtcNow, null, events);
+			var events = new[] { new EventMessage() }.ToList();
+			return new Commit(streamId, streamRevision, commitId, commitSequence, SystemTime.UtcNow(), null, events);
 		}
 	}
 }

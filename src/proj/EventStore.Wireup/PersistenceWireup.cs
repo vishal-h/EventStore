@@ -1,23 +1,23 @@
 namespace EventStore
 {
-	using System.Collections.Generic;
-	using System.Linq;
+	using System.Transactions;
 	using Persistence;
 	using Serialization;
 
 	public class PersistenceWireup : Wireup
 	{
 		private bool initialize;
-		private ICollection<IPipelineHook> pipelineHooks;
 
 		public PersistenceWireup(Wireup inner)
 			: base(inner)
 		{
+			this.Container.Register(TransactionScopeOption.Suppress);
 		}
 
-		public virtual Wireup WithPersistence(IPersistStreams instance)
+		public virtual PersistenceWireup WithPersistence(IPersistStreams instance)
 		{
-			return this.With(instance);
+			this.With(instance);
+			return this;
 		}
 
 		protected virtual SerializationWireup WithSerializer(ISerialize serializer)
@@ -25,20 +25,15 @@ namespace EventStore
 			return new SerializationWireup(this, serializer);
 		}
 
-		public virtual PersistenceWireup InitializeDatabaseSchema()
+		public virtual PersistenceWireup InitializeStorageEngine()
 		{
 			this.initialize = true;
 			return this;
 		}
 
-		public virtual PersistenceWireup HookIntoPipelineUsing(params IPipelineHook[] hooks)
+		public virtual PersistenceWireup EnlistInAmbientTransaction()
 		{
-			this.pipelineHooks = (hooks ?? new IPipelineHook[] { }).Where(x => x != null).ToArray();
-			return this;
-		}
-		public virtual PersistenceWireup HookIntoPipelineUsing(IEnumerable<IPipelineHook> hooks)
-		{
-			this.pipelineHooks = (hooks ?? new IPipelineHook[] { }).Where(x => x != null).ToArray();
+			this.Container.Register(TransactionScopeOption.Required);
 			return this;
 		}
 
@@ -48,9 +43,6 @@ namespace EventStore
 
 			if (this.initialize)
 				engine.Initialize();
-
-			if (this.pipelineHooks.Count > 0)
-				this.Container.Register(this.pipelineHooks);
 
 			return base.Build();
 		}

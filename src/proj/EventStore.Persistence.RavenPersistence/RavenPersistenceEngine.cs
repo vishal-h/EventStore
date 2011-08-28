@@ -1,5 +1,4 @@
-﻿
-namespace EventStore.Persistence.RavenPersistence
+﻿namespace EventStore.Persistence.RavenPersistence
 {
 	using System;
 	using System.Collections.Generic;
@@ -9,25 +8,38 @@ namespace EventStore.Persistence.RavenPersistence
 	using System.Threading;
 	using System.Transactions;
 	using Indexes;
+	using Raven.Abstractions.Commands;
+	using Raven.Abstractions.Data;
 	using Raven.Client;
 	using Raven.Client.Exceptions;
 	using Raven.Client.Indexes;
-	using Raven.Database.Data;
-	using Raven.Database.Json;
+	using Raven.Json.Linq;
 	using Serialization;
 
 	public class RavenPersistenceEngine : IPersistStreams
 	{
 		private readonly IDocumentStore store;
 		private readonly IDocumentSerializer serializer;
+		private readonly TransactionScopeOption scopeOption;
 		private readonly bool consistentQueries;
 		private bool disposed;
 		private int initialized;
 
-		public RavenPersistenceEngine(IDocumentStore store, IDocumentSerializer serializer, bool consistentQueries)
+		public RavenPersistenceEngine(
+			IDocumentStore store,
+			IDocumentSerializer serializer,
+			TransactionScopeOption scopeOption,
+			bool consistentQueries)
 		{
+			if (store == null)
+				throw new ArgumentNullException("store");
+
+			if (serializer == null)
+				throw new ArgumentNullException("serializer");
+
 			this.store = store;
 			this.serializer = serializer;
+			this.scopeOption = scopeOption;
 			this.consistentQueries = consistentQueries;
 		}
 
@@ -36,7 +48,6 @@ namespace EventStore.Persistence.RavenPersistence
 			this.Dispose(true);
 			GC.SuppressFinalize(this);
 		}
-
 		protected virtual void Dispose(bool disposing)
 		{
 			if (!disposing || this.disposed)
@@ -103,7 +114,7 @@ namespace EventStore.Persistence.RavenPersistence
 			{
 				throw new DuplicateCommitException(e.Message, e);
 			}
-			catch (Raven.Http.Exceptions.ConcurrencyException)
+			catch (Raven.Abstractions.Exceptions.ConcurrencyException)
 			{
 				var savedCommit = this.LoadSavedCommit(attempt);
 				if (savedCommit.CommitId == attempt.CommitId)
@@ -131,7 +142,7 @@ namespace EventStore.Persistence.RavenPersistence
 			{
 				Type = PatchCommandType.Set,
 				Name = "Dispatched",
-				Value = true
+				Value = RavenJToken.Parse("true")
 			};
 			var data = new PatchCommandData
 			{
@@ -198,7 +209,7 @@ namespace EventStore.Persistence.RavenPersistence
 			{
 				throw new StorageUnavailableException(e.Message, e);
 			}
-			catch (Raven.Http.Exceptions.ConcurrencyException)
+			catch (Raven.Abstractions.Exceptions.ConcurrencyException)
 			{
 				return false;
 			}
@@ -257,13 +268,18 @@ namespace EventStore.Persistence.RavenPersistence
 		{
 			ThreadPool.QueueUserWorkItem(x => this.SaveStreamHeadAsync(streamHead), null);
 		}
-		private void SaveStreamHeadAsync(RavenStreamHead streamHead)
+		private void SaveStreamHeadAsync(RavenStreamHead updated)
 		{
 			using (var scope = this.OpenCommandScope())
 			using (var session = this.store.OpenSession())
 			{
+				var current = session.Load<RavenStreamHead>(updated.StreamId.ToRavenStreamId()) ?? updated;
+				current.HeadRevision = updated.HeadRevision;
+				current.SnapshotRevision = updated.SnapshotRevision > 0
+					? updated.SnapshotRevision : current.SnapshotRevision;
+
 				session.Advanced.UseOptimisticConcurrency = false;
-				session.Store(streamHead);
+				session.Store(current);
 				session.SaveChanges();
 				scope.Complete();
 			}
@@ -274,7 +290,7 @@ namespace EventStore.Persistence.RavenPersistence
 		}
 		protected virtual TransactionScope OpenCommandScope()
 		{
-			return new TransactionScope(TransactionScopeOption.Suppress);
+			return new TransactionScope(this.scopeOption);
 		}
 	}
 }

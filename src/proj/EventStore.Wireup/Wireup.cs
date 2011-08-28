@@ -2,8 +2,10 @@ namespace EventStore
 {
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Transactions;
 	using Dispatcher;
 	using Persistence;
+	using Persistence.InMemoryPersistence;
 
 	public class Wireup
 	{
@@ -40,6 +42,17 @@ namespace EventStore
 			return this;
 		}
 
+		public virtual Wireup HookIntoPipelineUsing(IEnumerable<IPipelineHook> hooks)
+		{
+			return this.HookIntoPipelineUsing((hooks ?? new IPipelineHook[0]).ToArray());
+		}
+		public virtual Wireup HookIntoPipelineUsing(params IPipelineHook[] hooks)
+		{
+			ICollection<IPipelineHook> collection = (hooks ?? new IPipelineHook[] { }).Where(x => x != null).ToArray();
+			this.Container.Register(collection);
+			return this;
+		}
+
 		public virtual IStoreEvents Build()
 		{
 			if (this.inner != null)
@@ -50,11 +63,15 @@ namespace EventStore
 
 		private static IStoreEvents BuildEventStore(NanoContainer context)
 		{
-			var concurrentHook = new OptimisticPipelineHook();
+			var scopeOption = context.Resolve<TransactionScopeOption>();
+			var concurrentHook = scopeOption == TransactionScopeOption.Suppress ? new OptimisticPipelineHook() : null;
 			var dispatcherHook = new DispatchPipelineHook(context.Resolve<IDispatchCommits>());
 
 			var pipelineHooks = context.Resolve<ICollection<IPipelineHook>>() ?? new IPipelineHook[0];
-			pipelineHooks = new IPipelineHook[] { concurrentHook, dispatcherHook } .Concat(pipelineHooks).ToArray();
+			pipelineHooks = new IPipelineHook[] { concurrentHook, dispatcherHook }
+				.Concat(pipelineHooks)
+				.Where(x => x != null)
+				.ToArray();
 
 			return new OptimisticEventStore(context.Resolve<IPersistStreams>(), pipelineHooks);
 		}

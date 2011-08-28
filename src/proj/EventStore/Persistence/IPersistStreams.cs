@@ -6,6 +6,9 @@ namespace EventStore.Persistence
 	/// <summary>
 	/// Indicates the ability to adapt the underlying persistence infrastructure to behave like a stream of events.
 	/// </summary>
+	/// <remarks>
+	/// Instances of this class must be designed to be multi-thread safe such that they can be shared between threads.
+	/// </remarks>
 	public interface IPersistStreams : IDisposable, ICommitEvents, IAccessSnapshots
 	{
 		/// <summary>
@@ -39,14 +42,5 @@ namespace EventStore.Persistence
 		/// <exception cref="StorageException" />
 		/// <exception cref="StorageUnavailableException" />
 		void MarkCommitAsDispatched(Commit commit);
-
-		/// <summary>
-		/// Gets identifiers for all streams whose head and last snapshot revisions differ by at least the threshold specified.
-		/// </summary>
-		/// <param name="maxThreshold">The maximum difference between the head and most recent snapshot revisions.</param>
-		/// <returns>The streams for which the head and snapshot revisions differ by at least the threshold specified.</returns>
-		/// <exception cref="StorageException" />
-		/// <exception cref="StorageUnavailableException" />
-		IEnumerable<StreamHead> GetStreamsToSnapshot(int maxThreshold);
 	}
 }

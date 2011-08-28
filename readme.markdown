@@ -7,7 +7,7 @@ when using event sourcing as storage mechanism.  Event sourcing is most closely 
 with a concept known as [CQRS](http://cqrsinfo.com).
 
 ### Need Help? Have a Question?
-Ask your question on [Stack Overflow](http://stackoverflow.com) and tag your question with
+Ask your question on [Stack Overflow](http://stackoverflow.com/search?q=[cqrs]+eventstore) and tag your question with
 the CQRS tag and the word "EventStore" in the title.
 
 ### Purpose and Theory
@@ -21,10 +21,11 @@ infrastructure components.  Specifically, most CQRS-style applications read from
 and perform some processing.  When processing is complete, the application then commits the work
 to storage and publishes the completed work.  In almost all cases, this requires a two-phase commit
 managed by a distributed transaction coordinator (MSDTC in .NET) along with various security settings
-and ports available whereby such components can communicate.
+and firewall ports opened and avaiable whereby such components can communicate, not to mention a
+ubiquitous requirement for Microsoft Windows on all machines in .NET environments.
 
-When using a two-phase commit in .NET, there are very few database drivers that support this scenario
-and even fewer message queues that support it as well.  In essence, if you want to implement a typical
+When using two-phase commit in .NET, there are very few database drivers that support this scenario
+and even fewer message queues that support it.  In essence, if you want to implement a typical
 CQRS-style application, you're stuck with MSMQ and SQL Server using MSDTC.  Granted, there are
 other choices, but the constraints imposed by a two-phase commit are burdensome.  This also
 creates additional issues when utilizing shared hosting or running on Mono as support in frameworks
@@ -36,7 +37,16 @@ Furthermore, it does this outside of any ambient transaction from a message queu
 persistence mechanisms.  In other words, application developers are free to use virtually any
 messaging queuing infrastructure, message bus (if at all), and storage engine.  Each will perform
 its own specific task in an isolated manner with full transactional integrity all without
-enlisting any resources (other than a message queue) in some form of a transaction.
+enlisting any resources (other than a message queue) in some form of transaction.
+
+Interestingly enough, even without the presence of distributed transactions across the various resources
+involved, such as a message queue and persistent storage, the EventStore is able to ensure a fully
+transactional experience.  This is achieved by breaking apart a distributed transaction into smaller
+pieces and performing each one individually.  This is one of the primary goals and motivations in the
+underlying model found in the EventStore.  Thus each message delivered by the queuing infrastructure is
+made to be idempotent, even though the message may be delivered multiple times, as per message queue
+"at-least-once" guarantees.  Following this, the EventStore is able to ensure that all events committed
+are always dispatched to any messaging infrastructure.
 
 ## Supported Storage Engines
 
@@ -58,26 +68,27 @@ enlisting any resources (other than a message queue) in some form of a transacti
 [Complete] PostgreSQL 8.0 (or later)  
 [Complete] Firebird 2.0 (or later)  
 [Planned] Oracle 8.0 (or later)  
-[Planned] IBM DB2  
-[Planned] Informix  
-[Planned] Sybase  
+[TBA] IBM DB2  
+[TBA] Informix  
+[TBA] Sybase  
 
 ### Embedded Relational Databases
 [Complete] SQLite 3.0 (or later)  
 [Complete] Microsoft SQL Server Compact Edition 3.5 (or later)  
 [Complete] Microsoft Access 2000 (or later)  
 
-### Cloud-based Relational Databases
+### Cloud-based Databases (relational or otherwise)
 [Complete] Microsoft SQL Azure  
-[Complete] Amazon RDS  
-[In progress] Azure Tables  
-[In progress] Amazon SimpleDB  
-[Planned] Amazon S3  
+[Complete] Amazon RDS (MySQL)  
+[Planned] Amazon RDS (Oracle)  
+[In progress] Azure Tables/Blobs  
+[In progress] Amazon SimpleDB/S3  
 
 ### Document Databases
-[Complete] RavenDB r264 (or later)  
+[Complete] RavenDB r322 (or later)  
 [Complete] MongoDB 1.6 (or later)  
 [Planned] CouchDB 1.0 (or later)  
+[TBA] OrientDB  
 
 ### File System
 [Planned] .NET Managed System.IO APIs    
@@ -85,22 +96,25 @@ enlisting any resources (other than a message queue) in some form of a transacti
 ### Dynamo Clones
 [Planned] Cassandra  
 [Planned] Riak  
-[Planned] Voldemort  
-[Planned] Dynomite  
+[TBA] Voldemort  
+[TBA] Dynomite  
 
 ### KV Stores / NoSQL
-[Planned] HBase  
 [Planned] Redis  
-[Planned] Tokyo Cabinet  
 [Planned] Memcached (Membase, Gear6, etc.)  
-[Planned] Microsoft Velocity  
-[Planned] SharedCache  
-[Planned] Hibari  
-[Planned] Keyspace  
-[Planned] OrientDB / OrientKV  
-[Planned] VoltDB  
-[Planned] BerkleyDB  
-[Planned] HampsterDB  
+[Planned] HBase  
+[TBA] HyperTable  
+[TBA] Tokyo Cabinet  
+[TBA] Microsoft Velocity  
+[TBA] SharedCache  
+[TBA] Hibari  
+[TBA] Scalaris  
+[TBA] Keyspace  
+[TBA] OrientKV  
+[TBA] VoltDB  
+[TBA] BerkleyDB  
+[TBA] Hazelcast  
+[TBA] HampsterDB  
 
 ## Project Goals
 * Mono 2.4 support  
@@ -123,11 +137,11 @@ Once built, the files will be placed in the "output" subdirectory.
 
 	var store = Wireup.Init()
 		.UsingSqlPersistence("Name Of EventStore ConnectionString In Config File")
-			.InitializeDatabaseSchema()
-			.HookIntoPipelineUsing(new[] { new AuthorizationPipelineHook() })
+			.InitializeStorageEngine()
 			.UsingJsonSerialization()
 				.Compress()
 				.EncryptWith(EncryptionKey)
+		.HookIntoPipelineUsing(new[] { new AuthorizationPipelineHook() })
 		.UsingAsynchronousDispatcher()
 			.PublishTo(new My_NServiceBus_Or_MassTransit_Publisher())
 		.Build();		
