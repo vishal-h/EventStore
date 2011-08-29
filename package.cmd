@@ -14,16 +14,28 @@ if exist packages ( rmdir /s /q packages )
 mkdir packages
 
 call build.cmd
-cd publish
+cd publish-net40
 "../bin/7zip-bin/7za.exe" a -mx9 -r -y "../packages/EventStore-%VERSION%.%BUILD%-net40.zip" *.*
 cd ..
 
 call build-net35.cmd
-cd publish
+cd publish-net35
 "../bin/7zip-bin/7za.exe" a -mx9 -r -y "../packages/EventStore-%VERSION%.%BUILD%-net35.zip" *.*
 cd ..
 
-rmdir /s /q publish
+:: for some reason nuget doesn't like adding files located in directories underneath it.  v1.4 bug?
+move "publish-net35" "bin\nuget"
+move "publish-net40" "bin\nuget"
 
-git checkout "src/proj/VersionAssemblyInfo.cs"
-git tag -afm %VERSION%.%BUILD% "%VERSION%.%BUILD%"
+"bin/nuget/nuget.exe" Pack "bin/nuget/EventStore.nuspec" -Version "%VERSION%.%BUILD%" -OutputDirectory packages
+"bin/nuget/nuget.exe" Pack "bin/nuget/EventStore.Serialization.Json.nuspec" -Version "%VERSION%.%BUILD%" -OutputDirectory packages
+"bin/nuget/nuget.exe" Pack "bin/nuget/EventStore.Serialization.ServiceStack.nuspec" -Version "%VERSION%.%BUILD%" -OutputDirectory packages
+"bin/nuget/nuget.exe" Pack "bin/nuget/EventStore.Persistence.RavenPersistence.nuspec" -Version "%VERSION%.%BUILD%" -OutputDirectory packages
+"bin/nuget/nuget.exe" Pack "bin/nuget/EventStore.Persistence.MongoPersistence.nuspec" -Version "%VERSION%.%BUILD%" -OutputDirectory packages
+
+rmdir /s /q bin\nuget\publish-net40
+rmdir /s /q bin\nuget\publish-net35
+
+CALL git checkout "src/proj/VersionAssemblyInfo.cs"
+CALL git tag -afm %VERSION%.%BUILD% "%VERSION%.%BUILD%"
+echo Remember to run: git push origin --tags
